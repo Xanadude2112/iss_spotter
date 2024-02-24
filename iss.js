@@ -89,4 +89,44 @@ const fetchISSFlyOverTimes = function(coords, callback) {
   );
 };
 
-module.exports = { fetchMyIP, fetchCoordsByIP, fetchISSFlyOverTimes };
+/**
+ * Orchestrates multiple API requests in order to determine the next 5 upcoming ISS fly overs for the user's current location.
+ * Input:
+ *   - A callback with an error or results.
+ * Returns (via Callback):
+ *   - An error, if any (nullable)
+ *   - The fly-over times as an array (null if error):
+ *     [ { risetime: <number>, duration: <number> }, ... ]
+ */
+const nextISSTimesForMyLocation = function(callback) {
+  // Retrieve the IP address of the current machine
+  fetchMyIP((error, ip) => {
+    // If an error occurs during the IP address retrieval, return the error and null data to the callback
+    if (error) {
+      return callback(error, null);
+    }
+
+    // Use the IP address to fetch the latitude and longitude coordinates of the current location
+    fetchCoordsByIP(ip, (error, latLon) => {
+      // If an error occurs during the coordinate retrieval, return the error and null data to the callback
+      if (error) {
+        return callback(error, null);
+      }
+
+      // Use the latitude and longitude coordinates to fetch the next ISS flyover times
+      fetchISSFlyOverTimes(latLon, (error, passing) => {
+        // If an error occurs during the ISS flyover times retrieval, return the error and null data to the callback
+        if (error) {
+          return callback(error, null);
+        }
+
+        // Return the fetched ISS flyover times to the callback
+        callback(null, passing);
+      });
+    });
+  });
+};
+
+// Only export nextISSTimesForMyLocation and not the other three (API request) functions.
+// This is because they are not needed by external modules.
+module.exports = { nextISSTimesForMyLocation };
